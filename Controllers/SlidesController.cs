@@ -59,5 +59,24 @@ namespace Apoffice.Controllers
             cloudFile.UploadFromStream(ms);
         }
 
+        // PUT api/slides/replace/filePath
+        [HttpPut("replace/{*path}")]
+        public void Put(string path, IFormCollection formData)
+        {
+            CloudFileDirectory cloudFileDirectory = _storageClient.getDirectory("slides");
+            MemoryStream ms = new MemoryStream();
+            CloudFile cloudFile = cloudFileDirectory.GetFileReference(path);
+            cloudFile.DownloadToStream(ms);
+            ms.Position = 0;
+
+            PmlDocument pml = new PmlDocument(path, ms);
+            PmlDocument pmlReplaced = pml.SearchAndReplace(formData["oldValue"], formData["newValue"], true);
+
+            ms = new MemoryStream();
+            pmlReplaced.WriteByteArray(ms);
+            ms.Position = 0;
+            cloudFile = cloudFileDirectory.GetFileReference(path);
+            cloudFile.UploadFromStream(ms);
+        }
     }
 }
