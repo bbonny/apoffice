@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+
 namespace Apoffice
 {
     public class AppSettings
@@ -31,6 +32,8 @@ namespace Apoffice
             // Add framework services.
             services.AddMvc();
 
+            services.AddSwaggerGen();
+
             services.Configure<AppSettings>(Configuration);
 
         }
@@ -44,6 +47,10 @@ namespace Apoffice
             app.UseIISPlatformHandler();
 
             app.UseStaticFiles();
+
+
+            app.UseSwaggerGen();
+            app.UseSwaggerUi();
 
             app.UseMvc();
 
