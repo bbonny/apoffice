@@ -11,6 +11,18 @@ using OpenXmlPowerTools;
 
 using Apoffice.Utils;
 
+public class Slides
+{
+    public string path { set; get; }
+    public int start { set; get; }
+    public int count { set; get; }
+}
+
+public class MergeParameters
+{
+    public string outputPath { set; get; }
+    public List<Slides> inputSlides { set; get; }
+}
 
 namespace Apoffice.Controllers
 {
@@ -27,9 +39,9 @@ namespace Apoffice.Controllers
             _storageClient = new Storage(appSettings);
         }
 
-        // POST api/slides/merge/outputFilePath
-        [HttpPost("merge/{*path}")]
-        public void Post(string path, IFormCollection formData)
+        // POST api/slides/merge
+        [HttpPost("merge")]
+        public void Post([FromBody] MergeParameters mergeParameters)
         {
             List<SlideSource> sources = new List<SlideSource>();
             CloudFileDirectory cloudFileDirectory = _storageClient.getDirectory("slides");
@@ -37,17 +49,17 @@ namespace Apoffice.Controllers
             CloudFile cloudFile = null;
             PmlDocument pml = null;
 
-            foreach (string inputFilePath in formData["inputFilesPath"])
+            foreach (Slides slides in mergeParameters.inputSlides)
             {
                 ms = new MemoryStream();
-                cloudFile = cloudFileDirectory.GetFileReference(inputFilePath);
+                cloudFile = cloudFileDirectory.GetFileReference(slides.path);
 
                 cloudFile.DownloadToStream(ms);
                 ms.Position = 0;
-                _logger.LogInformation("File downloaded: " + inputFilePath);
+                _logger.LogInformation("File downloaded: " + slides.path);
 
-                pml = new PmlDocument(inputFilePath, ms);
-                sources.Add(new SlideSource(new PmlDocument(pml), true));
+                pml = new PmlDocument(slides.path, ms);
+                sources.Add(new SlideSource(new PmlDocument(pml), slides.start, slides.count, false));
             }
 
             pml = PresentationBuilder.BuildPresentation(sources);
@@ -55,7 +67,7 @@ namespace Apoffice.Controllers
             pml.WriteByteArray(ms);
             ms.Position = 0;
 
-            cloudFile = cloudFileDirectory.GetFileReference(path);
+            cloudFile = cloudFileDirectory.GetFileReference(mergeParameters.outputPath);
             cloudFile.UploadFromStream(ms);
         }
 
