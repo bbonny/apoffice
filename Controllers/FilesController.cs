@@ -8,7 +8,23 @@ using Microsoft.WindowsAzure.Storage.File;
 
 using Apoffice.Utils;
 using Microsoft.Extensions.OptionsModel;
+using System;
 
+public class FileListItem
+{
+    public string name { set; get; }
+    public long size { set; get; }
+    public char type { set; get; }
+    public DateTimeOffset? lastModified { set; get; }
+
+    public FileListItem(string name, long size, char type, DateTimeOffset? lastModified)
+    {
+        this.name = name;
+        this.size = size;
+        this.type = type;
+        this.lastModified = lastModified;
+    }
+}
 
 namespace Apoffice.Controllers
 {
@@ -27,23 +43,32 @@ namespace Apoffice.Controllers
 
         // GET: api/files/list/path
         [HttpGet("list/{*path}")]
-        public IEnumerable<string> GetList(string path)
+        public IEnumerable<FileListItem> GetList(string path)
         {
             CloudFileDirectory directory = _storageClient.getDirectory("slides/" + path);
             FileResultSegment result = directory.ListFilesAndDirectoriesSegmented(new FileContinuationToken());
-            List<string> fileNames = new List<string>();
+            List<FileListItem> fileListItems = new List<FileListItem>();
 
             foreach (IListFileItem item in result.Results) {
                 if (item is CloudFile)
                 {
-                    fileNames.Add(((CloudFile)item).Name);
+                    CloudFile file = (CloudFile)item;
+                    FileListItem fileResult = new FileListItem(
+                        file.Name, file.Properties.Length, 'f', file.Properties.LastModified
+                    );
+                    fileListItems.Add(fileResult);
                 }
                 else if (item is CloudFileDirectory)
                 {
-                    fileNames.Add(((CloudFileDirectory)item).Name);
+                    CloudFileDirectory fileDirectory = (CloudFileDirectory)item;
+
+                    FileListItem fileResult = new FileListItem(
+                        fileDirectory.Name, 0, 'd', fileDirectory.Properties.LastModified
+                    );
+                    fileListItems.Add(fileResult);
                 }
             }
-            return fileNames;
+            return fileListItems;
         }
 
         // GET api/files/path
